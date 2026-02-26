@@ -88,16 +88,27 @@ async def sb_delete(table: str, id: str):
         r.raise_for_status()
 
 # ─── AUTH ─────────────────────────────────────────────────────────────────────
-def get_athlete_id(authorization: str = Header(...)) -> str:
-    """Extrae el athlete_id del JWT de Supabase."""
+async def get_athlete_id(authorization: str = Header(...)) -> str:
+    """Extrae el athlete_id verificando el token con Supabase."""
     try:
         token = authorization.replace("Bearer ", "")
-        payload = pyjwt.decode(token, JWT_SECRET, algorithms=["HS256", "RS256"],
-                               audience="authenticated")
-        return payload["sub"]   # UUID del usuario en Supabase Auth
+        # Verificar con Supabase directamente
+        async with httpx.AsyncClient() as client:
+            r = await client.get(
+                f"{SUPABASE_URL}/auth/v1/user",
+                headers={
+                    "apikey": SUPABASE_KEY,
+                    "Authorization": f"Bearer {token}",
+                }
+            )
+            if r.status_code != 200:
+                raise HTTPException(status_code=401, detail="Token inválido")
+            user = r.json()
+            return user["id"]
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=401, detail=f"Token inválido: {e}")
-
 # ─── MOTOR FISIOLÓGICO ────────────────────────────────────────────────────────
 
 def calc_css(t400: float, t200: float) -> float | None:
