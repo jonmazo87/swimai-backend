@@ -92,7 +92,7 @@ def get_athlete_id(authorization: str = Header(...)) -> str:
     """Extrae el athlete_id del JWT de Supabase."""
     try:
         token = authorization.replace("Bearer ", "")
-        payload = pyjwt.decode(token, JWT_SECRET, algorithms=["HS256"],
+        payload = pyjwt.decode(token, JWT_SECRET, algorithms=["HS256", "RS256"],
                                audience="authenticated")
         return payload["sub"]   # UUID del usuario en Supabase Auth
     except Exception as e:
