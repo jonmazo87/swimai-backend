@@ -91,7 +91,8 @@ async def sb_delete(table: str, id: str):
 async def get_athlete_id(authorization: str = Header(...)) -> str:
     """Extrae el athlete_id verificando el token con Supabase."""
     try:
-        token = authorization.replace("Bearer ", "")
+        token = authorization.replace("Bearer ", "").strip()
+      token = ''.join(c for c in token if c.isprintable() and ord(c) < 128)
         # Verificar con Supabase directamente
         async with httpx.AsyncClient() as client:
             r = await client.get(
