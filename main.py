@@ -95,17 +95,17 @@ async def get_athlete_id(authorization: str = Header(...)) -> str:
             token = token[7:].strip()
         token = token.encode('ascii', errors='ignore').decode('ascii')
         
-        async with httpx.AsyncClient() as client:
-            r = await client.get(
-                f"{SUPABASE_URL}/auth/v1/user",
-                headers={
-                    "apikey": SUPABASE_KEY,
-                    "Authorization": f"Bearer {token}",
-                }
-            )
-            if r.status_code != 200:
-                raise HTTPException(status_code=401, detail=f"Token inválido: {r.text}")
-            return r.json()["id"]
+        async with httpx.AsyncClient(timeout=10.0) as client:
+    r = await client.get(
+        f"{SUPABASE_URL}/auth/v1/user",
+        headers={
+            "apikey": str(SUPABASE_KEY),
+            "Authorization": "Bearer " + str(token),
+        }
+    )
+    if r.status_code != 200:
+        raise HTTPException(status_code=401, detail=f"Token inválido: {r.text}")
+    return r.json()["id"]  
     except HTTPException:
         raise
     except Exception as e:
