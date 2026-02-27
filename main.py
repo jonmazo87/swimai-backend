@@ -89,11 +89,11 @@ async def sb_delete(table: str, id: str):
 
 # ─── AUTH ─────────────────────────────────────────────────────────────────────
 async def get_athlete_id(authorization: str = Header(...)) -> str:
-    """Extrae el athlete_id verificando el token con Supabase."""
     try:
         token = authorization.strip()
         if token.lower().startswith("bearer "):
             token = token[7:].strip()
+        token = token.encode('ascii', errors='ignore').decode('ascii')
         
         async with httpx.AsyncClient() as client:
             r = await client.get(
@@ -104,7 +104,7 @@ async def get_athlete_id(authorization: str = Header(...)) -> str:
                 }
             )
             if r.status_code != 200:
-                raise HTTPException(status_code=401, detail="Token inválido")
+                raise HTTPException(status_code=401, detail=f"Token inválido: {r.text}")
             return r.json()["id"]
     except HTTPException:
         raise
