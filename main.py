@@ -91,9 +91,10 @@ async def sb_delete(table: str, id: str):
 async def get_athlete_id(authorization: str = Header(...)) -> str:
     """Extrae el athlete_id verificando el token con Supabase."""
     try:
-        token = authorization.replace("Bearer ", "").strip()
-      token = ''.join(c for c in token if c.isprintable() and ord(c) < 128)
-        # Verificar con Supabase directamente
+        token = authorization.strip()
+        if token.lower().startswith("bearer "):
+            token = token[7:].strip()
+        
         async with httpx.AsyncClient() as client:
             r = await client.get(
                 f"{SUPABASE_URL}/auth/v1/user",
@@ -104,12 +105,11 @@ async def get_athlete_id(authorization: str = Header(...)) -> str:
             )
             if r.status_code != 200:
                 raise HTTPException(status_code=401, detail="Token inválido")
-            user = r.json()
-            return user["id"]
+            return r.json()["id"]
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=401, detail=f"Token inválido: {e}")
+        raise HTTPException(status_code=401, detail=f"Error: {e}")
 # ─── MOTOR FISIOLÓGICO ────────────────────────────────────────────────────────
 
 def calc_css(t400: float, t200: float) -> float | None:
