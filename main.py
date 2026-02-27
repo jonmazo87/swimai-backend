@@ -88,27 +88,16 @@ async def sb_delete(table: str, id: str):
         r.raise_for_status()
 
 # ─── AUTH ─────────────────────────────────────────────────────────────────────
-async def get_athlete_id(authorization: str = Header(...)) -> str:
+def get_athlete_id(authorization: str = Header(...)) -> str:
+    """Extrae el athlete_id del JWT de Supabase."""
     try:
-        token = authorization.strip()
-        if token.lower().startswith("bearer "):
-            token = token[7:].strip()
-        token = token.encode('ascii', errors='ignore').decode('ascii')
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            r = await client.get(
-                f"{SUPABASE_URL}/auth/v1/user",
-                headers={
-                    "apikey": str(SUPABASE_KEY),
-                    "Authorization": "Bearer " + token,
-                }
-            )
-            if r.status_code != 200:
-                raise HTTPException(status_code=401, detail=f"Token inválido: {r.text}")
-            return r.json()["id"]
-    except HTTPException:
-        raise
+        token = authorization.replace("Bearer ", "")
+        payload = pyjwt.decode(token, JWT_SECRET, algorithms=["HS256"],
+                               audience="authenticated")
+        return payload["sub"]   # UUID del usuario en Supabase Auth
     except Exception as e:
-        raise HTTPException(status_code=401, detail=f"Error: {e}")
+        raise HTTPException(status_code=401, detail=f"Token inválido: {e}")
+
 # ─── MOTOR FISIOLÓGICO ────────────────────────────────────────────────────────
 
 def calc_css(t400: float, t200: float) -> float | None:
@@ -256,10 +245,6 @@ async def update_profile(body: AthleteProfile,
     # Upsert — crea o actualiza
     data = {**body.dict(), "id": athlete_id, "updated_at": datetime.utcnow().isoformat()}
     url  = f"{SUPABASE_URL}/rest/v1/athletes"
-import logging
-logging.warning(f"TOKEN LENGTH: {len(token)}")
-logging.warning(f"TOKEN START: {repr(token[:50])}")
-logging.warning(f"SUPABASE_URL: {repr(SUPABASE_URL)}")
     async with httpx.AsyncClient() as client:
         r = await client.post(
             url,
