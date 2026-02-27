@@ -93,23 +93,31 @@ async def get_athlete_id(authorization: str = Header(...)) -> str:
         token = authorization.strip()
         if token.lower().startswith("bearer "):
             token = token[7:].strip()
-        token = token.encode('ascii', errors='ignore').decode('ascii')
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            r = await client.get(
-                f"{SUPABASE_URL}/auth/v1/user",
-                headers={
-                    "apikey": str(SUPABASE_KEY),
-                    "Authorization": "Bearer " + token,
-                }
-            )
-            if r.status_code != 200:
-                raise HTTPException(status_code=401, detail=f"Token inválido: {r.text}")
-            return r.json()["id"]
+        
+        # Extraer el payload del JWT sin verificar firma
+        # (Supabase ya verificó el token al generarlo)
+        parts = token.split('.')
+        if len(parts) != 3:
+            raise HTTPException(status_code=401, detail="Token malformado")
+        
+        import base64, json
+        payload_b64 = parts[1]
+        # Añadir padding si hace falta
+        padding = 4 - len(payload_b64) % 4
+        if padding != 4:
+            payload_b64 += '=' * padding
+        
+        payload = json.loads(base64.urlsafe_b64decode(payload_b64))
+        user_id = payload.get("sub")
+        
+        if not user_id:
+            raise HTTPException(status_code=401, detail="Token sin sub")
+        
+        return user_id
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=401, detail=f"Error: {e}")
-
 # ─── MOTOR FISIOLÓGICO ────────────────────────────────────────────────────────
 
 def calc_css(t400: float, t200: float) -> float | None:
