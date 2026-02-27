@@ -257,6 +257,10 @@ async def update_profile(body: AthleteProfile,
     # Upsert — crea o actualiza
     data = {**body.dict(), "id": athlete_id, "updated_at": datetime.utcnow().isoformat()}
     url  = f"{SUPABASE_URL}/rest/v1/athletes"
+import logging
+logging.warning(f"TOKEN LENGTH: {len(token)}")
+logging.warning(f"TOKEN START: {repr(token[:50])}")
+logging.warning(f"SUPABASE_URL: {repr(SUPABASE_URL)}")
     async with httpx.AsyncClient() as client:
         r = await client.post(
             url,
